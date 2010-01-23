@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Mount and unmounts an encrypted volume (in a toggle-fashion). This is necessary because
 # at least in Karmic, the dialog provided by gnome-mount/gnome-volume-manager does not 
-# allow the user to specify a keyfile.
+# allow the user to specify a keyfile (see https://bugs.launchpad.net/gnome-mount/+bug/133520)
 #
 # Currently makes a number of assumptions:
 #    * LUKS volume with keyfile
@@ -40,7 +40,7 @@ else
     # TODO: Maybe there is a better solution. Some ideas may be here:
     # http://ask.metafilter.com/76984/Pipe-command-output-but-keep-the-error-code
     errcapture="/tmp/cryptmount.stderr.${cm_name}"
-    cat $keyfile | { echo ""; cryptmount -w 0 $cm_name 2>${errcapture} ;} | \
+    { echo ""; cryptmount -w 5 $cm_name 2>${errcapture} 5< $keyfile ;} | \
              zenity --progress --pulsate --auto-close --title "Please wait" --text "Mouting ${cm_name}..."
     if [ ${PIPESTATUS[1]} -eq 0 ]; then
         echo `cat /proc/mounts | grep "^${mapper}" | awk '{print $2}'`
