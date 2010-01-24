@@ -8,13 +8,31 @@
 #    * Uses cryptmount; partition needs to be configured in cmtab.
 #
 
-# TODO: Those should probably be passed as command line arguments.
+usage()
+{
+cat << EOF
+usage: $0 CRYPT_MOUNT_NAME MAPPER KEYFILE
+
+Will mount or unmount the volume CRYPT_MOUNT_NAME configured in
+cryptmount's cmtab using the contents of KEYFILE as a password.
+MAPPER is used to check if the volumen is already mounted.
+EOF
+}
+
+
 # Name of the volume as defined in cmtab
-cm_name="encrypted"
+cm_name=$1
 # Device mapper of the volume
-mapper="/dev/mapper/encrypted"
+mapper=$2
 # Default location of the keyfile
-keyfile='/home/michael/Desktop/keyfile2'
+keyfile=$3
+
+
+if [ ! $1 ] || [ ! $2 ] || [ ! $3 ]
+then
+    usage
+  	exit 1
+fi
 
 if mount | grep "^${mapper} on" > /dev/null
 then
