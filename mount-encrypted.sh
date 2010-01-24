@@ -61,7 +61,6 @@ else
     { echo ""; cryptmount -w 5 $cm_name 2>${errcapture} 5< $keyfile ;} | \
              zenity --progress --pulsate --auto-close --title "Please wait" --text "Mouting ${cm_name}..."
     if [ ${PIPESTATUS[1]} -eq 0 ]; then
-        echo `cat /proc/mounts | grep "^${mapper}" | awk '{print $2}'`
         nautilus `cat /proc/mounts | grep "^${mapper}" | awk '{print $2}'`
     else
         zenity --error --text="An error occured: `cat ${errcapture}`"
