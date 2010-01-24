@@ -6,6 +6,8 @@
 # Currently makes a number of assumptions:
 #    * LUKS volume with keyfile
 #    * Uses cryptmount; partition needs to be configured in cmtab.
+#    * The nofsck option is set for the volume in cmtab. This is because fsck needs a terminal
+#      to run, see: http://sourceforge.net/tracker/index.php?func=detail&aid=2937347&group_id=154099&atid=790423
 #
 
 usage()
