@@ -1,40 +1,45 @@
 #!/usr/bin/env bash
-# Mount and unmounts an encrypted volume (in a toggle-fashion). This is necessary because
-# at least in Karmic, the dialog provided by gnome-mount/gnome-volume-manager does not 
-# allow the user to specify a keyfile (see https://bugs.launchpad.net/gnome-mount/+bug/133520)
+# Mount and unmounts an encrypted volume (in a toggle-fashion). 
+# This is necessary because at least in Karmic, the dialog provided 
+# by gnome-mount/gnome-volume-manager does not  allow the user to 
+# specify a keyfile (see https://bugs.launchpad.net/gnome-mount/+bug/133520)
 #
 # Currently makes a number of assumptions:
 #    * LUKS volume with keyfile
 #    * Uses cryptmount; partition needs to be configured in cmtab.
-#    * The nofsck option is set for the volume in cmtab. This is because fsck needs a terminal
-#      to run, see: http://sourceforge.net/tracker/index.php?func=detail&aid=2937347&group_id=154099&atid=790423
+#      We chose cryptmount due to it's general awesomeness, and in
+# 	   particular since we'd need to require the calle to be su 
+#      then; which means we (afaik) wouldn't be able to call this
+#      script from a GNOME launcher, requiring another wrapper. 
+#    * The nofsck option is set for the volume in cmtab. This is 
+#      because fsck needs a terminal to run, see: 
+#      http://sourceforge.net/tracker/index.php?func=detail&aid=2937347&group_id=154099&atid=790423
 #
 
 usage()
 {
 cat << EOF
-usage: $0 CRYPT_MOUNT_NAME MAPPER KEYFILE
+usage: $0 CRYPT_MOUNT_NAME KEYFILE
 
 Will mount or unmount the volume CRYPT_MOUNT_NAME configured in
 cryptmount's cmtab using the contents of KEYFILE as a password.
-MAPPER is used to check if the volumen is already mounted.
 EOF
 }
 
 
 # Name of the volume as defined in cmtab
 cm_name=$1
-# Device mapper of the volume
-mapper=$2
 # Default location of the keyfile
-keyfile=$3
+keyfile=$2
 
 
-if [ ! $1 ] || [ ! $2 ] || [ ! $3 ]
+if [ ! $1 ] || [ ! $2 ]
 then
     usage
   	exit 1
 fi
+
+mapper=/dev/mapper/${cm_name}
 
 if mount | grep "^${mapper} on" > /dev/null
 then
