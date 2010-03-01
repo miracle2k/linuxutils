@@ -28,7 +28,7 @@ DATA_DIR=/var/lib/mysql-ram
 PID_FILE=/var/run/mysqld/mysqld-ram.pid
 USER=mysql
 GROUP=mysql
-MYSQL_APPARMOR_PROFILE=/etc/apparmor.d/usr.sbin.mysql
+MYSQL_APPARMOR_PROFILE=/etc/apparmor.d/usr.sbin.mysqld
 
 
 get_bind_args() {
@@ -69,10 +69,10 @@ cleanup() {
     fi
     
     # Enable apparmor again
-    if [ -f /etc/apparmor.d/disable/usr.sbin.mysql ]; then
+    if [ -f /etc/apparmor.d/disable/usr.sbin.mysqld ]; then
         echo "Re-enabling AppArmor..."
-        rm -f /etc/apparmor.d/disable/usr.sbin.mysql
-        apparmor_parser -R $MYSQL_APPARMOR_PROFILE
+        rm -f /etc/apparmor.d/disable/usr.sbin.mysqld
+        apparmor_parser -r $MYSQL_APPARMOR_PROFILE
     fi
     
     set -e
