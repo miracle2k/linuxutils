@@ -68,13 +68,6 @@ cleanup() {
         umount $DATA_DIR 
     fi
     
-    # Enable apparmor again
-    if [ -f /etc/apparmor.d/disable/usr.sbin.mysqld ]; then
-        echo "Re-enabling AppArmor..."
-        rm -f /etc/apparmor.d/disable/usr.sbin.mysqld
-        apparmor_parser -r $MYSQL_APPARMOR_PROFILE
-    fi
-    
     set -e
     exit
 }
@@ -86,11 +79,10 @@ if ! mountpoint -q $DATA_DIR; then
     mount -t tmpfs none $DATA_DIR
 fi
 
-# If AppArmor protects mysql, it'll have to stop doing that
+# If AppArmor protects MySQL, it'll have to stop doing that
 # for the time being.
 if [ -f $MYSQL_APPARMOR_PROFILE ]; then
     echo "Disabling AppArmor..."
-    ln -s $MYSQL_APPARMOR_PROFILE /etc/apparmor.d/disable/
     apparmor_parser -R $MYSQL_APPARMOR_PROFILE
 fi
 
@@ -98,14 +90,22 @@ fi
 mysql_install_db --user $USER --datadir=$DATA_DIR > /dev/null
 
 # Run mysqld; we need to workaround it not reacting to CTRL+C.
-# We setup traps to shut it down ourselves.
+# Let's setup traps to shut it down ourselves.
 trap '/usr/bin/mysqladmin $(get_bind_args client) refresh & wait' 1 # HUP
 trap '/usr/bin/mysqladmin $(get_bind_args client) shutdown & wait' 2 3 15 # INT QUIT and TERM
-# We run it in the background
+# Run MySQL in the background.
 mysqld $(get_bind_args server) --datadir="$DATA_DIR" --pid-file="$PID_FILE" --console &
-# We wait for it to end
+
+# Enable apparmor again right away; it's enough that we
+# started up the mysqld without the profile.
+if [ -f $MYSQL_APPARMOR_PROFILE ]; then
+    echo "Re-enabling AppArmor..."
+    apparmor_parser -a $MYSQL_APPARMOR_PROFILE
+fi
+
+# Wait for the MySQL background process to end.
 wait
 
-# Call cleanup  manually
+# Call cleanup manually
 trap - INT TERM EXIT
 cleanup
