@@ -60,8 +60,6 @@ cleanup() {
     # as possible.
     set +e
     
-    echo "Cleaning up..."
-    
     # Unmount ramdisk
     if mountpoint -q $DATA_DIR; then
         echo "Unmounting ramdisk..." 
