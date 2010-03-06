@@ -10,6 +10,7 @@ http://www.tylerlesmann.com/2009/apr/27/copying-databases-across-platforms-sqlal
 
 import getopt
 import sys
+import time
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -30,19 +31,31 @@ def pull_data(from_db, to_db, tables, create_schema):
     smeta.reflect(only=tables or None)
 
     for name, table in smeta.tables.iteritems():
-        print 'Processing', name
+        print 'Processing table "%s"' % name
         if create_schema:
-            print 'Creating table on destination server'
+            print '...Creating table on destination server'
             table.metadata.create_all(dengine)
         NewRecord = quick_mapper(table)
         columns = table.columns.keys()
-        print 'Transferring records'
+
+        num_records = source.query(table).count()
+        i = 0
+        start = time.time()
         for record in source.query(table).all():
             data = dict(
                 [(str(column), getattr(record, column)) for column in columns]
             )
             destination.merge(NewRecord(**data))
-    print 'Committing changes'
+            i += 1
+
+            now = time.time()
+            done = i/float(num_records)
+            sys.stderr.write('...Transferring record %d/%d (%d%%), %ds elapsed, %ds estimated\r' % (
+                i, num_records, done*100, now-start, (now-start)/done))
+            sys.stderr.flush()
+        sys.stderr.write("\n");
+        print '...Transferred %d records in %f seconds' % (i, time.time() - start)
+    print '...Committing changes'
     destination.commit()
 
 
