@@ -41,12 +41,27 @@ def pull_data(from_db, to_db, options):
         num_records = source.query(table).count()
         i = 0
         start = time.time()
-        for record in source.query(table).all():
+        # Note that yield only affects the number of ORM objects generated
+        # by SA; The stupid MySQLdb backend still fetches all rows at once.
+        # Try OurSQL. References for this:
+        # * http://www.mail-archive.com/sqlalchemy@googlegroups.com/msg17389.html)
+        # * http://stackoverflow.com/questions/2145177/is-this-a-memory-leak-a-program-in-python-with-sqlalchemy-sqlite
+        for record in source.query(table).yield_per(getattr(options, 'yield')):
             data = dict(
                 [(str(column), getattr(record, column)) for column in columns]
             )
-            destination.merge(NewRecord(**data))
+            if options.merge:
+                # TODO: Can be use load=False here? And should we?
+                destination.merge(NewRecord(**data))
+            else:
+                destination.add(NewRecord(**data))
+
             i += 1
+
+            if (options.flush and i % options.flush == 0):
+                destination.flush()
+            if (options.commit and i % options.commit == 0):
+                destination.commit()
 
             now = time.time()
             done = i/float(num_records)
@@ -81,6 +96,25 @@ def main():
     parser.add_option('--skip-schema', dest="create_tables", default=True,
                       action='store_false',
                       help="do not create tables in the destination database")
+    parser.add_option('--merge', dest="merge", action='store_true',
+                      help="merge with existing data based on primary key; "+
+                           "use if the target table already has rows; up to "+
+                           "15 times slower.")
+    parser.add_option('-y', '--yield', dest="yield", default=4000,
+                      type="int", metavar="NUM",
+                      help="number of source rows to pull into memory in one "+
+                            "batch; some backends like MySQLdb still fetch "+
+                            "everything anyway (default: %default)")
+    parser.add_option('-f', '--flush', dest="flush", default=10000,
+                      type="int", metavar="NUM",
+                      help="number of rows to cache in memory before sending "+
+                           "queries to the destination database "+
+                           "(default: %default)")
+    parser.add_option('-c', '--commit', dest="commit", default=None,
+                      type="int", metavar="NUM",
+                      help="number of rows after which to commit and start a "+
+                           "new transaction; implies a flush (default: "+
+                           "only commit when done)")
     options, args = parser.parse_args(sys.argv[1:])
 
     if len(args) < 2:
