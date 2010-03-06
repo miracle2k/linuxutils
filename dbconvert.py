@@ -6,6 +6,11 @@ Written against SQLAlchemy 6.1beta.
 
 Based on code from:
 http://www.tylerlesmann.com/2009/apr/27/copying-databases-across-platforms-sqlalchemy/
+
+TODO: Not using the ORM is likely faster, but more extensive to write;
+We'd need to construct queries manually; also, even with the ORM, there
+are probably some SQLAlchemy-related optimizations that could be employed
+to speed up the the processing of large tables (expunge_all?).
 """
 
 import optparse
