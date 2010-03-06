@@ -8,7 +8,7 @@ Based on code from:
 http://www.tylerlesmann.com/2009/apr/27/copying-databases-across-platforms-sqlalchemy/
 """
 
-import getopt
+import optparse
 import sys
 import time
 from sqlalchemy import create_engine, MetaData, Table
@@ -22,17 +22,17 @@ def make_session(connection_string):
     return Session(), engine
 
 
-def pull_data(from_db, to_db, tables, create_schema):
+def pull_data(from_db, to_db, options):
     source, sengine = make_session(from_db)
     smeta = MetaData(bind=sengine)
     destination, dengine = make_session(to_db)
 
     print 'Pulling schemas from source server'
-    smeta.reflect(only=tables or None)
+    smeta.reflect(only=options.tables)
 
     for name, table in smeta.tables.iteritems():
         print 'Processing table "%s"' % name
-        if create_schema:
+        if options.create_tables:
             print '...Creating table on destination server'
             table.metadata.create_all(dengine)
         NewRecord = quick_mapper(table)
@@ -59,14 +59,11 @@ def pull_data(from_db, to_db, tables, create_schema):
     destination.commit()
 
 
-def print_usage():
-    print """
-Usage: %s -f source_server -t destination_server table [--all] [--skip-schema] [table ...]
-    -f, -t = driver://user[:password]@host[:port]/database
+def get_usage():
+    return """usage: %prog [options] FROM TO
 
-Example: %s -f oracle://someuser:PaSsWd@db1/TSH1 \\
-    -t mysql://root@db2:3307/reporting table_one table_two
-    """ % (sys.argv[0], sys.argv[0])
+FROM/TO syntax: driver://user[:password]@host[:port]/database)
+Example: mysql://root@db2:3307/reporting"""
 
 
 def quick_mapper(table):
@@ -77,19 +74,30 @@ def quick_mapper(table):
 
 
 def main():
-    optlist, tables = getopt.getopt(sys.argv[1:], 'f:t:', ['all', 'skip-schema'])
+    parser = optparse.OptionParser(usage=get_usage())
+    parser.add_option('-t', '--table', dest="tables", action="append",
+                      help="comma only this table (can be given multiple times)",
+                      metavar="NAME")
+    parser.add_option('--skip-schema', dest="create_tables", default=True,
+                      action='store_false',
+                      help="do not create tables in the destination database")
+    options, args = parser.parse_args(sys.argv[1:])
 
-    options = dict(optlist)
-    if '-f' not in options or '-t' not in options or not (
-        bool(tables) ^ bool('--all' in options)):
-        print_usage()
+    if len(args) < 2:
+        parser.print_usage()
+        print >>sys.stderr, "error: you need to specify FROM and TO urls"
         return 1
+    elif len(args) > 2:
+        parser.print_usage()
+        print >>sys.stderr, "error: unexpected arguments: %s" % ", ".join(args[2:])
+        return 1
+    else:
+        from_url, to_url = args
 
     pull_data(
-        options['-f'],
-        options['-t'],
-        tables,
-        not '--skip-schema' in options
+        from_url,
+        to_url,
+        options,
     )
 
 
