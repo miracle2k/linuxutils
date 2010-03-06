@@ -11,6 +11,13 @@ TODO: Not using the ORM is likely faster, but more extensive to write;
 We'd need to construct queries manually; also, even with the ORM, there
 are probably some SQLAlchemy-related optimizations that could be employed
 to speed up the the processing of large tables (expunge_all?).
+
+TODO: Quite frequently, schema conversion doesn't work because SQLAlchemy is
+quite strict about schemas. For example, SQLite has no LONGTEXT column, and
+MySQL requires a fixed length VARCHAR. Does requirements are not automatically
+bridged. Possible a way could be provided for the user to define the mapper
+him/herself. Note that this basically is only a schema creation issue. You
+can already workaround such a error by defining the target table manually.
 """
 
 import optparse
