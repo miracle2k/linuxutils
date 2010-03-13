@@ -28,16 +28,26 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 
-def make_session(connection_string):
-    engine = create_engine(connection_string, echo=False, convert_unicode=True)
+def make_session(connection_string, convert_unicode):
+    engine = create_engine(connection_string, echo=False,
+                           convert_unicode=convert_unicode)
     Session = sessionmaker(bind=engine)
     return Session(), engine
 
 
 def pull_data(from_db, to_db, options):
-    source, sengine = make_session(from_db)
+    # Note about encodings: We use "convert_unicode" for the source
+    # but not the destination connection. To hope here is that the data
+    # read is available in unicode, and the destination backend then has the
+    # responsibility to properly handle the unicode data. "convert_unicode"
+    # seems somewhat dangerous on write, because the backend gets only a
+    # bytestring, and it seems like SQLAlchemy (0.6beta2) does not sync it's
+    # own "encoding" setting (used by convert_unicode) with the MySQLdb
+    # "charset" option (defaults to latin1). As a result, you have a utf8
+    # string that is processed by the server as latin1.
+    source, sengine = make_session(from_db, convert_unicode=True)
     smeta = MetaData(bind=sengine)
-    destination, dengine = make_session(to_db)
+    destination, dengine = make_session(to_db, convert_unicode=False)
 
     print 'Pulling schemas from source server'
     smeta.reflect(only=options.tables)
