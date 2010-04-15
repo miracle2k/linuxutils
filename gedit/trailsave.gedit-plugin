@@ -1,0 +1,9 @@
+[Gedit Plugin]
+Loader=python
+Module=trailsave
+IAge=2
+Name=Save without trailing space
+Description=Automatically strip all trailing whitespace from lines before saving
+Authors=Osmo Salomaa <otsaloma@cc.hut.fi>, Jamie Bennett <jamie@linuxuk.org>
+Copyright=Copyright (C) 2006-2008 Osmo Salomaa, 2009 Jamie Bennett
+Website=http://www.linuxuk.org/projects/trailsave
