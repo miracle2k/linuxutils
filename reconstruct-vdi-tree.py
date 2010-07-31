@@ -239,8 +239,6 @@ def walk_tree(tree, func, start=0, indentation=' '*2):
 
 def print_info(tree, detailed=False):
     """Print VDI info in a format more easily readable than XML.
-
-    XXX: Info mode
     """
     if len(tree) == 1 and not tree[0].children:
         # If there is only a single node, always use detail mode
