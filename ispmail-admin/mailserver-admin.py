@@ -176,6 +176,7 @@ class Console(cmd.Cmd):
         # TODO: syntax checks
         new_domain = Domain()
         new_domain.name = args
+        self.ctx.add(new_domain)
         self.ctx.flush()
 
     # Shortcut 'nd' for new domain
