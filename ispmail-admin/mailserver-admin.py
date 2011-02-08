@@ -278,7 +278,7 @@ class Console(cmd.Cmd):
 
         # Attempt to get the alias by the numerical ID
         try:
-            aliases = self.ctx.query(Alias).get(id=int(args))
+            aliases = self.ctx.query(Alias).filter_by(domain_id=self._domainid, id=int(args)).all()
         except ValueError:
             # Syntax: source destination
             if ' ' in args:
