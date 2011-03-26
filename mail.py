@@ -17,6 +17,7 @@ def main():
     parser.add_option("-f", dest="from_", help="From address")
     parser.add_option("--host", dest="host", help="SMTP Host")
     parser.add_option("--port", dest="port", help="SMTP Port", default=25)
+    parser.add_option("-q", dest="quiet", help="Be quiet.", default=False)
 
     (options, recipients) = parser.parse_args()
 
@@ -24,10 +25,16 @@ def main():
         print "No recipients specified."
         return 1
 
+    stdin = sys.stdin.read()
+    if not stdin.strip():
+        if not options.quiet:
+            print "No stdin text, not sending message."
+        return 1
+
     smtp = smtplib.SMTP()
     smtp.connect(options.host, options.port)
     for recipient in recipients:
-        msg = MIMEText(sys.stdin.read())
+        msg = MIMEText(stdin)
         msg['Subject'] = options.subject
         msg['From'] = options.from_
         msg['To'] = recipient
