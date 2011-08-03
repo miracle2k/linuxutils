@@ -6,13 +6,11 @@ Original Author: Michal Niklas
 
 import sys
 
-USAGE = 'USAGE:\n\tsort_ini.py file.ini'
+USAGE = 'USAGE:\n\tinisort.py file.ini'
 
-def sort_ini(fname):
+def sort_ini(stream):
 	"""sort .ini file: sorts sections and in each section sorts keys"""
-	f = file(fname)
-	lines = f.readlines()
-	f.close()
+	lines = stream.readlines()
 	section = ''
 	sections = {}
 	for line in lines:
@@ -37,9 +35,16 @@ def sort_ini(fname):
 			print
 
 
-if '--version' in sys.argv:
-	print __version__
-elif len(sys.argv) < 2:
-	print USAGE
-else:
-	sort_ini(sys.argv[1])
+def main():
+    if '-h' in sys.argv or '--help' in sys.argv or len(sys.argv) > 2:
+	    print USAGE
+    else:
+        if len(sys.argv) == 2:
+            with open(sys.argv[1]) as f:
+                sort_ini(f)
+        else:
+            sort_ini(sys.stdin)
+
+
+if __name__ == '__main__':
+     sys.exit(main() or 0)
