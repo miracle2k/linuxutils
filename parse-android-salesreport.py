@@ -69,9 +69,9 @@ if __name__ == '__main__':
                 country,
                 data['num_sales'],
                 '%.2f €' % data['charged'],
-                '%.2f €' % (Decimal('0.19') * data['charged']),
+                '%.2f €' % (data['charged'] / Decimal('1.19') * Decimal('0.19')),
                 '%.2f €' % data['received'],
-                '%.2f €' % (Decimal('0.19') * data['received']),
+                '%.2f €' % (data['received'] / Decimal('1.19') * Decimal('0.19')),
             ])
 
         # Indent table by 4 spaces
