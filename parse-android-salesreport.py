@@ -48,22 +48,22 @@ def group_by(records, key):
     """
     # itertools.groupby requires sorted input
     records.sort(key=key)
-    
+
     result = collections.OrderedDict()
     for country, sales in itertools.groupby(records, key=key):
         sales = list(sales)
-        
+
         """
         TODO: There actually seems to be a bug in both payout and sales
         reports, where I have buyers from the US paying in KRW, and no FX Rate
         is given. In those cases, assuming 1 as FX rate is wrong. Example:
-        
+
         {'Merchant Currency': 'KRW', 'Country of Buyer': 'US', ..., 'Merchant Receives': '0.00', 'Item Price': '1,165.00', 'Charged Amount': '1,165.00', 'Order Charged Date': '2012-04-18', 'Currency of Sale': 'KRW', 'City of Buyer': 'Honolulu', 'Estimated FX Rate': '', 'State of Buyer': 'HI', ... 'Financial Status': 'Charged'}
         """
 
         charged = lambda s: Decimal(str(locale.atof(s['Charged Amount'])))
         received = lambda s: Decimal(str(locale.atof(s['Merchant Receives'])))
-        fx = lambda s: Decimal(str(locale.atof(s['Estimated FX Rate'] or '1')))
+        fx = lambda s: Decimal(str(locale.atof(s['Estimated FX Rate'] or None)))
 
         result[country] = {
           'num_sales': len(list(sales)),
@@ -79,25 +79,25 @@ def group_by(records, key):
             # A sales report, lacks info about actual monies payed out.
             result[country].update({
                 'charged': sum([charged(s) for s in sales]),
-                # XXX It is actually wrong to assume a single currency for 
+                # XXX It is actually wrong to assume a single currency for
                 # each country. Lots of people from KR pay in USD for example.
                 'currency': sales[0]['Currency of Sale']
             })
     if is_payout_report(records):
         # Without a single currency, sum makes no sense
         result['SUM'] = reduce(operator.add, map(collections.Counter, result.values()))
-        
+
     return result
-                         
-                         
+
+
 if __name__ == '__main__':
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-    
+
     # define different keys
     country = lambda x: x['Country of Buyer']
     eu_codes = ['AT', 'BE', 'BG', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'EL', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE']
     euvat = lambda x: 'EU' if x['Country of Buyer'] in eu_codes else 'Non-EU'
-    
+
     for filename in sorted(sys.argv[1:]):
         print os.path.basename(filename)
         records = read_csv(filename)
