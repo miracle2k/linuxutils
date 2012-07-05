@@ -63,7 +63,19 @@ def group_by(records, key):
 
         charged = lambda s: Decimal(str(locale.atof(s['Charged Amount'])))
         received = lambda s: Decimal(str(locale.atof(s['Merchant Receives'])))
-        fx = lambda s: Decimal(str(locale.atof(s['Estimated FX Rate'] or None)))
+
+        def fx(s):
+            rate = s['Estimated FX Rate']
+            if not rate:
+                if s['Currency of Sale'] == 'EUR':
+                    return Decimal("1")
+                print 'Sale without FX: %s' % s
+                return 1
+            return Decimal(str(locale.atof(s['Estimated FX Rate'])))
+
+        for x in sales:
+            if not fx(x):
+                print x
 
         result[country] = {
           'num_sales': len(list(sales)),
@@ -108,7 +120,7 @@ if __name__ == '__main__':
             table.set_cols_dtype(['t', 'i', 't', 't', 't', 't'])
             table.set_cols_align(["l", 'r', "r", "r", "r", "r"])
             table.header(['', 'Num', 'Charged', '19%', 'Received', '19%'])
-            key_to_use = country
+            key_to_use = euvat
         else:
             # For sales reports, with less info, show a different report
             # entirely.
