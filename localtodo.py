@@ -15,6 +15,7 @@ directory, it will be moved to the shared folder.
 
 import os
 import sys
+import glob
 from os import path
 import json
 import docopt    # http://pypi.python.org/pypi/docopt/
@@ -28,7 +29,7 @@ file to a shared folder, then create a link to it in it's original
 place.
 
 Usage:
-    localtodo.py [--to <path>] [<name>]
+    localtodo.py [--to <path>] [-s <name>] [<name>]
     localtodo.py --delete <name>
 
 Options & Arguments:
@@ -39,6 +40,11 @@ Options & Arguments:
     --to <path>  Where to create the file. The first time you use
                  the script you will have to specify this. It will
                  subsequently be saved in a ~/.localtodo file.
+    -s <name>, --sub <name>
+                 Create a sub-TODO file. The name will be appended
+                 as a suffix, like this: "LOCAL_TODO.docs".
+                 The default invocation will link all such existing
+                 TODO files into the local directory.
     --delete <name>
                  Delete an existing LOCAL_TODO file for the given
                  project name.
@@ -47,6 +53,12 @@ Options & Arguments:
 
 CONFIG_FILE = '~/.localtodo'
 TODOFILE_NAME = 'LOCAL_TODO'
+SUBFILE_NAME = 'LOCAL_TODO.%s'
+
+
+class ExitCodeError(Exception):
+    def __init__(self, code):
+        self.code = code
 
 
 def main(argv):
@@ -72,27 +84,85 @@ def main(argv):
     # Implement --delete mode
     if args['--delete']:
         target_file = path.join(target_directory, args['--delete'])
+        if args['--sub']:
+            target_file = "%s.%s" % (target_file,  args['--sub'])
         if not path.exists(target_file):
             print 'Error: No such file: %s' % target_file
             return 2
         os.unlink(target_file)
         return
 
-    # Determine target file
+    # Normal sync mode
     project = args['<name>']
+    subfile = args['--sub']
     if not project:
         project = path.basename(path.abspath(os.curdir))
+
+    env = {
+    'target_directory': target_directory,
+    'established_links': []
+    }
+    try:
+        if subfile:
+            sync_todo(env, project, subfile)
+        else:
+            # Sync the main file
+            sync_todo(env, project)
+            # Find all existing sub-todo files, both in remote
+            # and in local dir, sync them all.
+            for sub in findsubs(path.join(target_directory,
+                                      "%s.*" % project)):
+                sync_todo(env, project, sub)
+            for sub in findsubs(SUBFILE_NAME % '*'):
+                sync_todo(env, project, sub)
+    except ExitCodeError, e:
+        return e.code
+
+    # Print summery of state
+    print
+    print "I have established the following links for you:"
+    for source, target in set(env['established_links']):
+        print '  %s --> %s' % (source, target)
+
+
+def findsubs(expr):
+    """Helper that extracts sub-todo suffixes from a list of
+    glob results."""
+    for filename in glob.glob(expr):
+        basename, subname = path.splitext(path.basename(filename))
+        if subname:
+            yield subname[1:]  # remove the dot
+
+
+def sync_todo(env, project, subfile=None):
+    """Ensure that the todo file identified by ``project`` and
+    ``subfile`` is setup correctly (exists in local dir, links to
+    target dir).
+
+    If not the case, try to make it so.
+    """
+    target_directory = env['target_directory']
+
+    # Determine target file
     target_file = path.join(target_directory, project)
+    if subfile:
+        target_file = "%s.%s" % (target_file, subfile)
 
     # Determine source file
-    source_file = path.join(os.curdir, TODOFILE_NAME)
+    if subfile:
+        source_file = path.join(os.curdir, SUBFILE_NAME % subfile)
+    else:
+        source_file = path.join(os.curdir, TODOFILE_NAME)
 
     # See what we have to do
     if path.exists(source_file) and path.exists(target_file):
+        if path.realpath(source_file) == target_file:
+            env['established_links'].append((source_file, target_file))
+            return
         print '%s exists, but so does %s\nMaybe you want to call with '\
               '"--delete %s" to delete the target.' % (
                   target_file, source_file, project)
-        return 2
+        raise ExitCodeError(2)
 
     # If there is a local file, move it to the target
     if path.exists(source_file):
@@ -101,14 +171,15 @@ def main(argv):
         os.rename(source_file, target_file)
     elif not path.exists(target_file):
         print 'Creating new empty file %s' % (target_file,)
-        with open(target_file, 'w'): pass
+        with open(target_file, 'w'):
+            pass
     else:
-        print 'Using existing file %s' % (target_file,)
+        print 'Found existing file %s' % (target_file,)
 
     # Create the link
-    print 'Linking %s to %s' % (source_file, target_file)
     # To use the relative path: path.relpath(target_file, path.dirname(source_file))
     os.symlink(path.abspath(target_file), source_file)
+    env['established_links'].append((source_file, target_file))
 
 
 if __name__ == '__main__':
