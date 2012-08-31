@@ -18,6 +18,7 @@ import sys
 
 from sqlalchemy import *
 from sqlalchemy.exceptions import *
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import mapper, sessionmaker, relation
 
 # Database URI
@@ -342,8 +343,11 @@ class Console(cmd.Cmd):
         print "New user: %s (password: %s)" % (username, password)
 
         # Check if user exists already
-        user = self.ctx.query(User).filter_by(domain_id=self._domainid, user=username).one()
-        if user:
+        try:
+            user = self.ctx.query(User).filter_by(domain_id=self._domainid, user=username).one()
+        except NoResultFound: 
+            pass
+        else:
             print "User exists already, changing the password"
             user.password = func.md5(password)
             self.ctx.add(user)
