@@ -40,6 +40,7 @@ REPO=${QUERY#*/}
 USER=${QUERY%/*}
 
 # Fetch the current revision
+#### FIX http://stackoverflow.com/questions/9179828/github-api-retrieve-all-commits-for-all-branches-for-a-repo
 HASH=$(curl -s http://github.com/api/v2/yaml/repos/show/$QUERY/branches | grep "  master" | awk '{ print $2 }')
 if [ ! $HASH ]; then
     echo "Unable to find commit hash $QUERY at branch master";
