@@ -20,6 +20,7 @@ Limitations:
       If the task was created by the user "Flow", it presumably is
       recurring.
     - It does not contain information about which tasks are flagged.
+    - The GetFlow export does not contain sections.
 
 """
 
@@ -124,7 +125,7 @@ def process_one_list_file(filename):
             task['activities'].append(activity)
 
         task['created-at'] = \
-            activity_log(task['activities'], 'created this task in')
+            activity_log(task['activities'], 'created this task')
 
     return (list_name, tasks)
 
